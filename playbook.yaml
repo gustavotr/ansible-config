@@ -3,7 +3,7 @@
 
   tasks:
     - name: Install nvm
-      become: false
+      become: no
       ansible.builtin.shell: >
         curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.39.1/install.sh | bash
       args:
@@ -14,7 +14,7 @@
       changed_when: mg_nvm_result.rc != 0
 
     - name: Install node
-      become: false
+      become: no
       shell: >
         . {{ ansible_env.HOME }}/.nvm/nvm.sh && nvm install {{ item }}
       args:
@@ -27,8 +27,17 @@
       changed_when: mg_node_result.rc != 0
 
     - name: Install latest neovim for Arch Linux or Fedora
-      become: true
+      become: yes
       ansible.builtin.package:
         name: "neovim"
         state: latest
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
+
+    - name: Install neovim config
+      ansible.builtin.git:
+        repo: https://github.com/gustavotr/nvim-config.git
+        dest: "{{ansible_env.HOME}}/.config/nvim"
+        single_branch: yes
+        version: main
+      environment:
+        GIT_ASKPASS: /bin/true
