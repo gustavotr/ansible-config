@@ -1,7 +1,5 @@
 ---
 - hosts: all
-  remote_user: gustavo
-  become: false
 
   tasks:
     - name: Install nvm
@@ -12,6 +10,9 @@
         executable: /bin/bash
         chdir: "$HOME"
         creates: "$HOME/.nvm/nvm.sh"
+      register: mg_nvm_result
+      changed_when: mg_nvm_result.rc != 0
+
     - name: Install node
       become: false
       shell: >
@@ -22,6 +23,9 @@
         creates: "{{ ansible_env.HOME }}/.nvm/versions/{{ item }}*"
       loop:
         - 18
+      register: mg_node_result
+      changed_when: mg_node_result.rc != 0
+
     - name: Install latest neovim for Arch Linux or Fedora
       become: true
       ansible.builtin.package:
