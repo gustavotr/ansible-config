@@ -1,20 +1,45 @@
 ---
-- hosts: all
+- name: Development Environment Setup
+  hosts: localhost
+  become: no
 
   tasks:
-    - name: Install nvm
-      become: no
-      ansible.builtin.shell: >
-        curl -o- https://raw.githubusercontent.com/creationix/nvm/v0.39.1/install.sh | bash
+    - name: Check ansible_env.HOME
+      ansible.builtin.fail:
+        msg: "Aborting the playbook since ansible_env.HOME is /root"
+      when: ansible_env.HOME == '/root'
+
+    # - name: Install dependencies
+    #   ansible.builtin.package:
+    #     name: "{{ item }}"
+    #     state: latest
+    #   loop:
+    #    - curl
+    #    - git
+    #   when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
+
+    # - name: Debug ansible_env
+    #   ansible.builtin.debug:
+    #     var: ansible_env
+
+    - name: Install NVM
+      shell: |
+        curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
       args:
         executable: /bin/bash
-        chdir: "$HOME"
-        creates: "$HOME/.nvm/nvm.sh"
-      register: mg_nvm_result
-      changed_when: mg_nvm_result.rc != 0
+      environment:
+        NVM_DIR: "{{ ansible_env.HOME }}/.nvm"
+      register: nvm_install_result
+      changed_when: nvm_install_result.rc != 0
+
+    - name: Add NVM initialization to Zsh profile
+      blockinfile:
+        path: "{{ ansible_env.HOME }}/.zshrc"
+        block: |
+          export NVM_DIR="{{ ansible_env.HOME }}/.nvm"
+          [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
 
     - name: Install node
-      become: no
       shell: >
         . {{ ansible_env.HOME }}/.nvm/nvm.sh && nvm install {{ item }}
       args:
@@ -23,21 +48,48 @@
         creates: "{{ ansible_env.HOME }}/.nvm/versions/{{ item }}*"
       loop:
         - 18
-      register: mg_node_result
-      changed_when: mg_node_result.rc != 0
+        - 20
+      register: node_install_result
+      changed_when: node_install_result.rc != 0
 
-    - name: Install latest neovim for Arch Linux or Fedora
+    - name: gather facts
+      setup:
+
+    - name: Install global npm packages
+      npm:
+        name: "{{ item }}"
+        state: latest
+        global: yes
+      loop:
+       - git-cz
+       - apify-cli
+       - pnpm
+       - yarn
+
+    - name: Install packages
       become: yes
       ansible.builtin.package:
-        name: "neovim"
+        name: "{{ item }}"
         state: latest
+      loop:
+       - neovim
+       - tmux
+       - tmuxp
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
 
     - name: Install neovim config
       ansible.builtin.git:
-        repo: git@github.com:gustavotr/nvim-config.git
+        repo: git@github.com:gustavotr/lazyvim-config.git
         dest: "{{ansible_env.HOME}}/.config/nvim"
         single_branch: yes
         version: main
       environment:
         GIT_ASKPASS: /bin/true
+
+    - name: Configure Tmux
+      shell: |
+        curl https://gist.githubusercontent.com/gustavotr/7f78a415dcb5d28118efbcfbedfb7bed/raw/841cdcc0436210d9fa319abde80eeeb18f8542c1/.tmux.conf --output {{ ansible_env.HOME}}/.tmux.conf
+        git clone https://github.com/tmux-plugins/tpm {{ ansible_env.HOME }}/.tmux/plugins/tpm
+        bash {{ ansible_env.HOME }}/.tmux/plugins/tpm/scripts/install_plugins.sh
+      args:
+        executable: /bin/bash
