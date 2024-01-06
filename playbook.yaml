@@ -5,22 +5,9 @@
 
   tasks:
     - name: Check ansible_env.HOME
-      ansible.builtin.fail:
+      fail:
         msg: "Aborting the playbook since ansible_env.HOME is /root"
       when: ansible_env.HOME == '/root'
-
-    # - name: Install dependencies
-    #   ansible.builtin.package:
-    #     name: "{{ item }}"
-    #     state: latest
-    #   loop:
-    #    - curl
-    #    - git
-    #   when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
-
-    # - name: Debug ansible_env
-    #   ansible.builtin.debug:
-    #     var: ansible_env
 
     - name: Install NVM
       shell: |
@@ -52,9 +39,6 @@
       register: node_install_result
       changed_when: node_install_result.rc != 0
 
-    - name: gather facts
-      setup:
-
     - name: Install global npm packages
       npm:
         name: "{{ item }}"
@@ -68,7 +52,7 @@
 
     - name: Install packages
       become: yes
-      ansible.builtin.package:
+      package:
         name: "{{ item }}"
         state: latest
       loop:
@@ -78,11 +62,12 @@
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
 
     - name: Install neovim config
-      ansible.builtin.git:
+      git:
         repo: git@github.com:gustavotr/lazyvim-config.git
         dest: "{{ansible_env.HOME}}/.config/nvim"
         single_branch: yes
         version: main
+        update: yes
       environment:
         GIT_ASKPASS: /bin/true
 
@@ -93,3 +78,13 @@
         bash {{ ansible_env.HOME }}/.tmux/plugins/tpm/scripts/install_plugins.sh
       args:
         executable: /bin/bash
+
+    - name: Configure Tmuxp
+      git:
+        repo: git@github.com:gustavotr/tmuxp-config.git
+        dest: "{{ansible_env.HOME}}/.tmuxp"
+        single_branch: yes
+        version: master
+        update: yes
+      environment:
+        GIT_ASKPASS: /bin/true
