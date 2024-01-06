@@ -9,6 +9,15 @@
         msg: "Aborting the playbook since ansible_env.HOME is /root"
       when: ansible_env.HOME == '/root'
 
+    - name: Install dependencies
+      become: yes
+      package:
+        name: "{{ item }}"
+        state: latest
+      loop:
+       - unzip
+      when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
+
     - name: Install NVM
       shell: |
         curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.1/install.sh | bash
