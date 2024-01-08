@@ -35,6 +35,8 @@
       shell: |
         git config --global user.email "gustavo@trudax.tech"
         git config --global user.name "Gustavo T. Rudiger"
+        curl https://gist.githubusercontent.com/gustavotr/bfa8c0b3e2af9cdc238d110052ce679c/raw/24a0500328a9eea51cfe51606622fed4fbdc5903/.gitconfig --output {{ ansible_env.HOME }}/.gitconfig
+        curl https://gist.githubusercontent.com/gustavotr/bfa8c0b3e2af9cdc238d110052ce679c/raw/24a0500328a9eea51cfe51606622fed4fbdc5903/.gitconfig-newscorp --output {{ ansible_env.HOME }}/.gitconfig-newscorp
 
     - name: Install NVM
       shell: |
@@ -92,6 +94,7 @@
       become: yes
       shell: |
         curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+        chmod ugo+x nvim.appimage
         ./nvim.appimage --appimage-extract
         rm nvim.appimage
         chmod -R ugo+x squashfs-root
