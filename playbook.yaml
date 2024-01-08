@@ -16,7 +16,25 @@
         state: latest
       loop:
        - unzip
+       - ripgrep
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
+
+    - name: Install dependencies
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: latest
+      loop:
+       - unzip
+       - build-essential
+       - ripgrep
+       - git
+      when: ansible_os_family == 'Debian'
+
+    - name: Configure git
+      shell: |
+        git config --global user.email "gustavo@trudax.tech"
+        git config --global user.name "Gustavo T. Rudiger"
 
     - name: Install NVM
       shell: |
@@ -70,11 +88,32 @@
        - tmuxp
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
 
+    - name: Install Neovim
+      become: yes
+      shell: |
+        curl -LO https://github.com/neovim/neovim/releases/latest/download/nvim.appimage
+        ./nvim.appimage --appimage-extract
+        rm nvim.appimage
+        chmod -R ugo+x squashfs-root
+        rm -rf /nvim-squashfs
+        mv squashfs-root /nvim-squashfs
+        ln -sf /nvim-squashfs/AppRun /usr/bin/nvim
+      when: ansible_os_family == 'Debian'
+
+    - name: Install packages
+      become: yes
+      apt:
+        name: "{{ item }}"
+        state: latest
+      loop:
+       - tmux
+       - tmuxp
+      when: ansible_os_family == 'Debian'
+
     - name: Install neovim config
       git:
         repo: git@github.com:gustavotr/lazyvim-config.git
         dest: "{{ansible_env.HOME}}/.config/nvim"
-        single_branch: yes
         version: main
         update: yes
       environment:
@@ -92,7 +131,6 @@
       git:
         repo: git@github.com:gustavotr/tmuxp-config.git
         dest: "{{ansible_env.HOME}}/.tmuxp"
-        single_branch: yes
         version: master
         update: yes
       environment:
