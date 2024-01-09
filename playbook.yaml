@@ -35,6 +35,7 @@
       shell: |
         git config --global user.email "gustavo@trudax.tech"
         git config --global user.name "Gustavo T. Rudiger"
+        git config --global core.editor "vim"
         curl https://gist.githubusercontent.com/gustavotr/bfa8c0b3e2af9cdc238d110052ce679c/raw/24a0500328a9eea51cfe51606622fed4fbdc5903/.gitconfig --output {{ ansible_env.HOME }}/.gitconfig
         curl https://gist.githubusercontent.com/gustavotr/bfa8c0b3e2af9cdc238d110052ce679c/raw/24a0500328a9eea51cfe51606622fed4fbdc5903/.gitconfig-newscorp --output {{ ansible_env.HOME }}/.gitconfig-newscorp
 
@@ -54,6 +55,28 @@
         block: |
           export NVM_DIR="{{ ansible_env.HOME }}/.nvm"
           [ -s "$NVM_DIR/nvm.sh" ] && . "$NVM_DIR/nvm.sh"  # This loads nvm
+
+          # autoload node version based on nvmrc file
+          autoload -U add-zsh-hook
+          load-nvmrc() {
+            local node_version="$(nvm version)"
+            local nvmrc_path="$(nvm_find_nvmrc)"
+
+            if [ -n "$nvmrc_path" ]; then
+              local nvmrc_node_version=$(nvm version "$(cat "${nvmrc_path}")")
+
+              if [ "$nvmrc_node_version" = "N/A" ]; then
+                nvm install
+              elif [ "$nvmrc_node_version" != "$node_version" ]; then
+                nvm use
+              fi
+            elif [ "$node_version" != "$(nvm version default)" ]; then
+              echo "Reverting to nvm default version"
+              nvm use default
+            fi
+          }
+          add-zsh-hook chpwd load-nvmrc
+          load-nvmrc
 
     - name: Install node
       shell: >
