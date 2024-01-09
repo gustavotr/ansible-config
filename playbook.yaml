@@ -28,6 +28,7 @@
        - unzip
        - build-essential
        - ripgrep
+       - fd-find
        - git
       when: ansible_os_family == 'Debian'
 
