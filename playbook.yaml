@@ -17,6 +17,7 @@
       loop:
        - unzip
        - ripgrep
+       - lazygit
       when: ansible_os_family == 'Archlinux' or ansible_distribution == 'Fedora'
 
     - name: Install dependencies
